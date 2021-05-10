@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run some SQL
+set -ex
+mysql --verbose -h db -u root -p"$PHABRICATOR_DATABASE_ADMIN_PASSWORD" < /opt/configs.sql

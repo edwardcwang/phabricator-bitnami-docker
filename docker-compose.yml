@@ -1,0 +1,45 @@
+version: '2'
+services:
+  db:
+    image: mariadb:10.6
+    # Some Phabricator-recommended settings
+    command: --local-infile=0 --sql-mode="STRICT_ALL_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION" --max-allowed-packet=32M --innodb-buffer-pool-size=256MB
+    volumes:
+      - 'mariadb_data:/var/lib/mysql'
+    environment:
+      - MYSQL_ROOT_PASSWORD=sqlrootpassword
+
+  # Note: recommend starting this one with a delay since the db
+  # container can take some time to warm up.
+  phabricator:
+    image: bitnami/phabricator:2021.13.0
+    entrypoint: bash -c "/opt/run-sql ; /opt/bitnami/scripts/phabricator/entrypoint.sh /opt/bitnami/scripts/phabricator/run.sh"
+    ports:
+      - '80:8080'
+      - '443:8443'
+    environment:
+      - BITNAMI_DEBUG=true
+      - ALLOW_EMPTY_PASSWORD=no
+      - PHABRICATOR_ENABLE_HTTPS=no
+      - PHABRICATOR_HOST=myhostname.localdomain
+      - PHABRICATOR_USERNAME=admin
+      - PHABRICATOR_PASSWORD=adminpassword
+      - PHABRICATOR_EMAIL=admin@myhostname.localdomain
+      - PHABRICATOR_FIRSTNAME=Admin
+      - PHABRICATOR_LASTNAME=Admin
+      - PHABRICATOR_DATABASE_HOST=db
+      - PHABRICATOR_DATABASE_ADMIN_PASSWORD=sqlrootpassword
+      # For PHP-based config
+      - PHABRICATOR_ENV=customconfig
+    volumes:
+      - 'phabricator_data:/bitnami/phabricator'
+      - ./customconfig.conf.php:/opt/bitnami/phabricator/conf/customconfig.conf.php:ro
+      - ./run-sql:/opt/run-sql:ro
+      - ./configs.sql:/opt/configs.sql:ro
+    depends_on:
+      - db
+volumes:
+  mariadb_data:
+    external: true
+  phabricator_data:
+    external: true
